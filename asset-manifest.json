@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/mendan-yoyaku/static/css/main.2f9ddf64.css",
+    "main.js": "/mendan-yoyaku/static/js/main.917b96e6.js",
+    "static/js/453.437942cb.chunk.js": "/mendan-yoyaku/static/js/453.437942cb.chunk.js",
+    "index.html": "/mendan-yoyaku/index.html",
+    "main.2f9ddf64.css.map": "/mendan-yoyaku/static/css/main.2f9ddf64.css.map",
+    "main.917b96e6.js.map": "/mendan-yoyaku/static/js/main.917b96e6.js.map",
+    "453.437942cb.chunk.js.map": "/mendan-yoyaku/static/js/453.437942cb.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.2f9ddf64.css",
+    "static/js/main.917b96e6.js"
+  ]
+}
