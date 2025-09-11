@@ -1,15 +1,21 @@
 import React, { useState } from 'react';
 import styles from './Calendar.module.css';
-import useInterviewStore from '../store';
 import { format } from 'date-fns';
+
+interface HighlightedDay {
+  date: string; // yyyy-MM-dd
+  content: string;
+  backgroundColor?: string;
+  textColor?: string;
+}
 
 interface CalendarProps {
   onDateClick: (date: Date) => void;
+  highlightedDays?: HighlightedDay[];
 }
 
-const Calendar: React.FC<CalendarProps> = ({ onDateClick }) => {
+const Calendar: React.FC<CalendarProps> = ({ onDateClick, highlightedDays = [] }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const interviews = useInterviewStore((state) => state.interviews);
 
   const goToPreviousMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
@@ -42,44 +48,50 @@ const Calendar: React.FC<CalendarProps> = ({ onDateClick }) => {
 
     const calendarDays = [];
 
-    // 前月の日付
+    // Previous month's days
     for (let i = 0; i < startDay; i++) {
       const day = new Date(year, month, i - startDay + 1);
       calendarDays.push(
-        <div key={format(day, 'yyyy-MM-dd')} className={`${styles['day-cell']} ${styles['not-current-month']}`} onClick={() => onDateClick(day)}>
+        <div key={`prev-${i}`} className={`${styles['day-cell']} ${styles['not-current-month']}`} onClick={() => onDateClick(day)}>
           <div className={styles['day-number']}>{day.getDate()}</div>
         </div>
       );
     }
 
-    // 今月の日付
+    // Current month's days
     for (let i = 1; i <= daysInMonth; i++) {
       const date = new Date(year, month, i);
       const dateStr = format(date, 'yyyy-MM-dd');
       const isToday = dateStr === format(today, 'yyyy-MM-dd');
-      const interviewData = interviews.find(d => d.date === dateStr);
+      const highlightedDay = highlightedDays.find(d => d.date === dateStr);
 
       const dayClasses = [styles['day-cell']];
       if (isToday) dayClasses.push(styles.today);
 
+      const style: React.CSSProperties = {};
+      if (highlightedDay) {
+        style.backgroundColor = highlightedDay.backgroundColor;
+        style.color = highlightedDay.textColor;
+      }
+
       calendarDays.push(
-        <div key={dateStr} className={dayClasses.join(' ')} onClick={() => onDateClick(date)}>
+        <div key={dateStr} className={dayClasses.join(' ')} style={style} onClick={() => onDateClick(date)}>
           <div className={styles['day-number']}>{i}</div>
-          {interviewData && Array.isArray(interviewData.records) && interviewData.records.length > 0 && (
+          {highlightedDay && (
             <div className={styles['diary-preview']}>
-              {interviewData.records.map(r => r.studentName).join(', ')}
+              {highlightedDay.content}
             </div>
           )}
         </div>
       );
     }
 
-    // 来月の日付
+    // Next month's days
     const remainingCells = 42 - calendarDays.length;
     for (let i = 1; i <= remainingCells; i++) {
       const day = new Date(year, month + 1, i);
       calendarDays.push(
-        <div key={format(day, 'yyyy-MM-dd')} className={`${styles['day-cell']} ${styles['not-current-month']}`} onClick={() => onDateClick(day)}>
+        <div key={`next-${i}`} className={`${styles['day-cell']} ${styles['not-current-month']}`} onClick={() => onDateClick(day)}>
           <div className={styles['day-number']}>{day.getDate()}</div>
         </div>
       );
