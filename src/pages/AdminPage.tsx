@@ -68,18 +68,18 @@ const AdminPage: React.FC = () => {
       </ul>
 
       <main>
-        <Calendar onDateClick={handleDateClick} highlightedDays={highlightedDays} />
-
-        <div ref={editorRef}>
-          {selectedDate && (
+        {!selectedDate ? (
+          <Calendar onDateClick={handleDateClick} highlightedDays={highlightedDays} />
+        ) : (
+          <div ref={editorRef}>
             <ScheduleEditor 
               date={selectedDate} 
               schedule={selectedSchedule}
               interviewerId={selectedInterviewerId}
               onClose={() => setSelectedDate(null)}
             />
-          )}
-        </div>
+          </div>
+        )}
       </main>
     </div>
   );

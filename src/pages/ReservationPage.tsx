@@ -105,16 +105,17 @@ const ReservationPage: React.FC = () => {
       </ul>
 
       <main>
-        <Calendar onDateClick={handleDateClick} highlightedDays={highlightedDays} />
-
-        {selectedDate && (
-          <TimeSlotPicker 
-            timeSlots={timeSlotsForSelectedDate}
-            onBookSlot={handleBookSlot}
-          />
+        {!selectedDate ? (
+          <Calendar onDateClick={handleDateClick} highlightedDays={highlightedDays} />
+        ) : (
+          <>
+            <TimeSlotPicker 
+              timeSlots={timeSlotsForSelectedDate}
+              onBookSlot={handleBookSlot}
+            />
+            <MyReservations user={currentUser} />
+          </>
         )}
-
-        <MyReservations user={currentUser} />
       </main>
 
       <BookingModal 
