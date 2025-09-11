@@ -2,7 +2,7 @@
   "name": "diary-app",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://hiroki-jofu.github.io/mendan/",
+  "homepage": "https://hiroki-jofu.github.io/mendan-yoyaku/",
   "dependencies": {
     "@capacitor-community/electron": "^5.0.1",
     "@capacitor/android": "^7.4.3",
