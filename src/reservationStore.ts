@@ -1,15 +1,14 @@
 import { create } from 'zustand';
-import { DailySchedule, Interviewer, Reservation } from './types';
+import { v4 as uuidv4 } from 'uuid';
+import { DailySchedule, Interviewer, Reservation, TimeSlot, ReservationState } from './types';
 import { dbPromise, SCHEDULE_STORE_NAME, INTERVIEWER_STORE_NAME } from './database';
 
-// --- Mock Data ---
 const initialInterviewers: Interviewer[] = [
   { id: 'interviewer-1', name: '山田 太郎' },
   { id: 'interviewer-2', name: '佐藤 花子' },
   { id: 'interviewer-3', name: '鈴木 一郎' },
 ];
 
-// --- Data Access Functions --- //
 const saveScheduleToDB = async (schedule: DailySchedule) => {
   try {
     const db = await dbPromise;
@@ -56,21 +55,10 @@ const loadInterviewersFromDB = async (): Promise<Interviewer[]> => {
   }
 };
 
-// --- Zustand Store --- //
-
-interface ReservationState {
-  interviewers: Interviewer[];
-  schedules: DailySchedule[];
-  isInitialized: boolean;
-  initializeApp: () => Promise<void>;
-  addOrUpdateSchedule: (schedule: DailySchedule) => void;
-  bookTimeSlot: (interviewerId: string, date: string, timeSlotId: string, reservation: Reservation) => void;
-  cancelReservation: (interviewerId: string, date: string, timeSlotId: string) => void;
-}
-
 const useReservationStore = create<ReservationState>((set, get) => ({
   interviewers: [],
   schedules: [],
+  copiedSlots: null,
   isInitialized: false,
 
   initializeApp: async () => {
@@ -93,29 +81,71 @@ const useReservationStore = create<ReservationState>((set, get) => ({
     saveScheduleToDB(schedule);
   },
 
-  bookTimeSlot: (interviewerId, date, timeSlotId, reservation) => {
-    const { schedules } = get();
+  bookTimeSlot: async (interviewerId, date, timeSlotId, reservationData) => {
+    const { schedules, addOrUpdateSchedule } = get();
     const schedule = schedules.find(s => s.date === date && s.interviewerId === interviewerId);
-    if (schedule) {
-      const updatedTimeSlots = schedule.timeSlots.map(ts =>
-        ts.id === timeSlotId ? { ...ts, reservation } : ts
-      );
-      const updatedSchedule = { ...schedule, timeSlots: updatedTimeSlots };
-      get().addOrUpdateSchedule(updatedSchedule);
+    if (!schedule) return false;
+
+    const timeSlot = schedule.timeSlots.find(ts => ts.id === timeSlotId);
+    if (!timeSlot) return false;
+
+    const newReservation: Reservation = { ...reservationData, id: uuidv4() };
+    const currentReservations = timeSlot.reservations || [];
+
+    // For single-person slots (capacity is undefined or 1)
+    if (!timeSlot.capacity || timeSlot.capacity <= 1) {
+      if (currentReservations.length > 0) {
+        alert('この枠は既に予約で埋まっています。');
+        return false;
+      }
+      timeSlot.reservations = [newReservation];
+    } else { // For multi-person slots
+      if (currentReservations.length >= timeSlot.capacity) {
+        alert('この枠は定員に達しています。');
+        return false;
+      }
+      timeSlot.reservations = [...currentReservations, newReservation];
+    }
+
+    addOrUpdateSchedule({ ...schedule });
+    return true;
+  },
+
+  cancelReservation: async (interviewerId, date, timeSlotId, reservationId, password) => {
+    const { schedules, addOrUpdateSchedule } = get();
+    const schedule = schedules.find(s => s.date === date && s.interviewerId === interviewerId);
+    if (!schedule) return false;
+
+    const timeSlot = schedule.timeSlots.find(ts => ts.id === timeSlotId);
+    if (!timeSlot || !timeSlot.reservations) return false;
+
+    const reservationToCancel = timeSlot.reservations.find(r => r.id === reservationId);
+    if (!reservationToCancel) {
+      alert('キャンセル対象の予約が見つかりません。');
+      return false;
+    }
+
+    // Admin cancellation (no password needed)
+    if (password === undefined) {
+      timeSlot.reservations = timeSlot.reservations.filter(r => r.id !== reservationId);
+      addOrUpdateSchedule({ ...schedule });
+      alert('予約をキャンセルしました。(管理者)');
+      return true;
+    }
+
+    // User cancellation (password needed)
+    if (reservationToCancel.password === password) {
+      timeSlot.reservations = timeSlot.reservations.filter(r => r.id !== reservationId);
+      addOrUpdateSchedule({ ...schedule });
+      alert('予約をキャンセルしました。');
+      return true;
+    } else {
+      alert('パスワードが違います。');
+      return false;
     }
   },
 
-  cancelReservation: (interviewerId, date, timeSlotId) => {
-    const { schedules } = get();
-    const schedule = schedules.find(s => s.date === date && s.interviewerId === interviewerId);
-    if (schedule) {
-      const updatedTimeSlots = schedule.timeSlots.map(ts =>
-        ts.id === timeSlotId ? { ...ts, reservation: null } : ts
-      );
-      const updatedSchedule = { ...schedule, timeSlots: updatedTimeSlots };
-      get().addOrUpdateSchedule(updatedSchedule);
-    }
-  },
+  setCopiedSlots: (slots) => set({ copiedSlots: slots }),
 
 }));
 

@@ -15,38 +15,44 @@ export interface InterviewData {
 
 // --- 面談予約アプリで追加する型 ---
 
-// 面談担当者
 export interface Interviewer {
   id: string;
   name: string;
 }
 
-// 予約を入れるユーザー
-export interface ReservationUser {
-  id: string;
-  name: string;
-  email: string;
-}
-
-// 予約情報
 export interface Reservation {
   id: string;
-  userId: string; // 予約したユーザーのID
-  userName: string; // 予約したユーザーの名前
-  notes?: string; // 予約時のメモなど
+  studentName: string;
+  grade: string;
+  affiliation: string;
+  email?: string;
+  notes?: string;
+  password?: string;
 }
 
-// 時間枠
 export interface TimeSlot {
   id: string;
-  startTime: string; // "HH:mm" 形式 (e.g., "10:00")
-  endTime: string;   // "HH:mm" 形式 (e.g., "10:50")
-  reservation?: Reservation | null; // 予約が入っている場合はここに情報が入る
+  title?: string;
+  startTime: string;
+  endTime: string;
+  capacity?: number;
+  reservations?: Reservation[];
 }
 
-// 特定の日の特定の面談担当者のスケジュール
 export interface DailySchedule {
-  date: string; // "yyyy-MM-dd" 形式
+  date: string;
   interviewerId: string;
   timeSlots: TimeSlot[];
+}
+
+export interface ReservationState {
+  interviewers: Interviewer[];
+  schedules: DailySchedule[];
+  copiedSlots: Omit<TimeSlot, 'id' | 'reservations'>[] | null;
+  isInitialized: boolean;
+  initializeApp: () => Promise<void>;
+  addOrUpdateSchedule: (schedule: DailySchedule) => void;
+  bookTimeSlot: (interviewerId: string, date: string, timeSlotId: string, reservation: Omit<Reservation, 'id'>) => Promise<boolean>;
+  cancelReservation: (interviewerId: string, date: string, timeSlotId: string, reservationId: string, password?: string) => Promise<boolean>;
+  setCopiedSlots: (slots: Omit<TimeSlot, 'id' | 'reservations'>[]) => void;
 }

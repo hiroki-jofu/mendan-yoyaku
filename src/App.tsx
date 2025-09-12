@@ -22,12 +22,14 @@ function App() {
     return null; 
   }
 
+  const goToSelectPage = () => setPage('select');
+
   const renderPage = () => {
     switch (page) {
       case 'admin':
-        return <AdminPage />;
+        return <AdminPage onGoToSelectPage={goToSelectPage} />;
       case 'reservation':
-        return <ReservationPage />;
+        return <ReservationPage onGoToSelectPage={goToSelectPage} />;
       case 'select':
       default:
         return <SelectPage 

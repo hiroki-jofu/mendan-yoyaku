@@ -4,21 +4,48 @@ import useReservationStore from '../reservationStore';
 import Calendar from '../components/Calendar';
 import TimeSlotPicker from '../components/TimeSlotPicker';
 import BookingModal from '../components/BookingModal';
-import MyReservations from '../components/MyReservations';
-import { ReservationUser, TimeSlot } from '../types';
-import { v4 as uuidv4 } from 'uuid';
+import { Reservation, TimeSlot } from '../types';
 
-// Mock users for demonstration
-const mockUsers: ReservationUser[] = [
-  { id: 'user-1', name: '田中 聡', email: 'tanaka@example.com' },
-  { id: 'user-2', name: '中村 あゆみ', email: 'nakamura@example.com' },
-  { id: 'user-3', name: '渡辺 健一', email: 'watanabe@example.com' },
-];
+const TodaysReservations: React.FC<{ selectedInterviewerId: string | null }> = ({ selectedInterviewerId }) => {
+  const { schedules } = useReservationStore();
 
-const ReservationPage: React.FC = () => {
-  const { interviewers, schedules, bookTimeSlot } = useReservationStore();
+  const todaysReservations = useMemo(() => {
+    if (!selectedInterviewerId) return [];
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const schedule = schedules.find(s => s.date === todayStr && s.interviewerId === selectedInterviewerId);
+    if (!schedule) return [];
+
+    return schedule.timeSlots.filter(ts => ts.reservations && ts.reservations.length > 0);
+  }, [schedules, selectedInterviewerId]);
+
+  return (
+    <div className="card mt-4 mb-4">
+      <div className="card-header">
+        <h5 className="mb-0">本日の面談予約</h5>
+      </div>
+      <ul className="list-group list-group-flush">
+        {todaysReservations.length > 0 ? (
+          todaysReservations.map(r => (
+            <li key={r.id} className="list-group-item">
+              <strong>{r.startTime}</strong> ({r.reservations?.length || 0} / {r.capacity || 1})
+            </li>
+          ))
+        ) : (
+          <li className="list-group-item text-muted">本日の予約はありません。</li>
+        )}
+      </ul>
+    </div>
+  );
+};
+
+
+interface ReservationPageProps {
+  onGoToSelectPage: () => void;
+}
+
+const ReservationPage: React.FC<ReservationPageProps> = ({ onGoToSelectPage }) => {
+  const { interviewers, schedules, bookTimeSlot, cancelReservation } = useReservationStore();
   
-  const [currentUser, setCurrentUser] = useState<ReservationUser>(mockUsers[0]);
   const [selectedInterviewerId, setSelectedInterviewerId] = useState<string | null>(interviewers[0]?.id || null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [bookingSlot, setBookingSlot] = useState<TimeSlot | null>(null);
@@ -35,36 +62,39 @@ const ReservationPage: React.FC = () => {
     }
   };
 
-  const handleConfirmBooking = (notes: string) => {
-    if (currentUser && selectedDate && bookingSlot && selectedInterviewerId) {
-      bookTimeSlot(selectedInterviewerId, format(selectedDate, 'yyyy-MM-dd'), bookingSlot.id, {
-        id: uuidv4(),
-        userId: currentUser.id,
-        userName: currentUser.name,
-        notes,
-      });
+  const handleCancelSlot = (timeSlotId: string, reservationId: string, password?: string) => {
+    if (!selectedDate || !selectedInterviewerId) return;
+    cancelReservation(selectedInterviewerId, format(selectedDate, 'yyyy-MM-dd'), timeSlotId, reservationId, password);
+  };
+
+  const handleConfirmBooking = async (reservation: Omit<Reservation, 'id'>) => {
+    if (selectedDate && bookingSlot && selectedInterviewerId) {
+      const success = await bookTimeSlot(selectedInterviewerId, format(selectedDate, 'yyyy-MM-dd'), bookingSlot.id, reservation);
+      if (success) {
+        setBookingSlot(null);
+      }
     }
-    setBookingSlot(null);
-    setSelectedDate(null);
   };
 
   const highlightedDays = useMemo(() => {
     return schedules
       .filter(s => s.interviewerId === selectedInterviewerId)
       .map(s => {
-        const availableSlots = s.timeSlots.filter(ts => !ts.reservation).length;
+        const totalCapacity = s.timeSlots.reduce((acc, ts) => acc + (ts.capacity || 1), 0);
+        const totalReservations = s.timeSlots.reduce((acc, ts) => acc + (ts.reservations?.length || 0), 0);
+        const isFull = totalReservations >= totalCapacity;
         return {
           date: s.date,
-          content: availableSlots > 0 ? `${availableSlots}件空き` : '満席',
-          backgroundColor: availableSlots > 0 ? '#e0f7fa' : '#ffebee',
-          textColor: availableSlots > 0 ? '#00796b' : '#c62828',
+          content: isFull ? '満席' : `空きあり`,
+          backgroundColor: isFull ? '#ffebee' : '#e0f7fa',
+          textColor: isFull ? '#c62828' : '#00796b',
         };
       });
   }, [schedules, selectedInterviewerId]);
 
   const timeSlotsForSelectedDate = useMemo(() => {
     if (!selectedDate || !selectedInterviewerId) return [];
-    const schedule = schedules.find(s => s.date === format(selectedDate, 'yyyy-MM-dd') && s.interviewerId === selectedInterviewerId);
+    const schedule = schedules.find(s => s.date === format(selectedDate!, 'yyyy-MM-dd') && s.interviewerId === selectedInterviewerId);
     return schedule?.timeSlots || [];
   }, [schedules, selectedDate, selectedInterviewerId]);
 
@@ -83,12 +113,9 @@ const ReservationPage: React.FC = () => {
           <h1>予約ページ</h1>
           <p className="mb-0">ご希望の面談日時を選択してください。</p>
         </div>
-        <div className="col-md-3 text-end">
-            <label htmlFor="user-select" className="form-label">予約者を選択</label>
-            <select id="user-select" className="form-select" value={currentUser.id} onChange={e => setCurrentUser(mockUsers.find(u => u.id === e.target.value)!)}>
-              {mockUsers.map(user => <option key={user.id} value={user.id}>{user.name}</option>)}
-            </select>
-        </div>
+        <button className="btn btn-outline-primary" onClick={onGoToSelectPage}>
+          最初の画面に戻る
+        </button>
       </header>
 
       <ul className="nav nav-tabs mb-3">
@@ -96,7 +123,8 @@ const ReservationPage: React.FC = () => {
           <li className="nav-item" key={interviewer.id}>
             <button 
               className={`nav-link ${selectedInterviewerId === interviewer.id ? 'active' : ''}`}
-              onClick={() => setSelectedInterviewerId(interviewer.id)}
+              onClick={() => !selectedDate && setSelectedInterviewerId(interviewer.id)}
+              disabled={!!selectedDate}
             >
               {interviewer.name}
             </button>
@@ -106,14 +134,18 @@ const ReservationPage: React.FC = () => {
 
       <main>
         {!selectedDate ? (
-          <Calendar onDateClick={handleDateClick} highlightedDays={highlightedDays} />
+          <>
+            <TodaysReservations selectedInterviewerId={selectedInterviewerId} />
+            <Calendar onDateClick={handleDateClick} highlightedDays={highlightedDays} />
+          </>
         ) : (
           <>
+            <button className="btn btn-secondary mb-3" onClick={() => setSelectedDate(null)}>カレンダーに戻る</button>
             <TimeSlotPicker 
               timeSlots={timeSlotsForSelectedDate}
               onBookSlot={handleBookSlot}
+              onCancelSlot={handleCancelSlot}
             />
-            <MyReservations user={currentUser} />
           </>
         )}
       </main>
@@ -121,7 +153,6 @@ const ReservationPage: React.FC = () => {
       <BookingModal 
         show={!!bookingSlot}
         timeSlot={bookingSlot}
-        user={currentUser}
         onClose={() => setBookingSlot(null)}
         onConfirm={handleConfirmBooking}
       />

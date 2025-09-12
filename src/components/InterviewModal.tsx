@@ -33,13 +33,13 @@ const InterviewModal: React.FC<InterviewModalProps> = ({ show, date, records, on
     setErrors({}); // モーダルが開かれるたびにエラーをリセット
   }, [records, show]);
 
-  const handleRecordChange = (id: string, field: keyof InterviewRecord, value: string) => {
+  const handleRecordChange = (id: string, field: string, value: string) => {
     setLocalRecords(localRecords.map(r => r.id === id ? { ...r, [field]: value } : r));
     // 入力があったらそのフィールドのエラーをクリア
     setErrors(prevErrors => {
       const newErrors = { ...prevErrors };
       if (newErrors[id]) {
-        delete newErrors[id][field];
+        delete (newErrors[id] as any)[field];
         if (Object.keys(newErrors[id]).length === 0) {
           delete newErrors[id];
         }
