@@ -18,6 +18,8 @@ export interface InterviewData {
 export interface Interviewer {
   id: string;
   name: string;
+  title: string;
+  email: string;
 }
 
 export interface Reservation {
@@ -52,6 +54,7 @@ export interface ReservationState {
   isInitialized: boolean;
   initializeApp: () => Promise<void>;
   addOrUpdateSchedule: (schedule: DailySchedule) => void;
+  updateInterviewer: (interviewer: Interviewer) => void;
   bookTimeSlot: (interviewerId: string, date: string, timeSlotId: string, reservation: Omit<Reservation, 'id'>) => Promise<boolean>;
   cancelReservation: (interviewerId: string, date: string, timeSlotId: string, reservationId: string, password?: string) => Promise<boolean>;
   setCopiedSlots: (slots: Omit<TimeSlot, 'id' | 'reservations'>[]) => void;

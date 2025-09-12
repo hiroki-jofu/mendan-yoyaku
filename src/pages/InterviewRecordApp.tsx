@@ -4,7 +4,7 @@ import InterviewModal from '../components/InterviewModal';
 import Header from '../components/Header';
 import SearchResultList from '../components/SearchResultList';
 
-import useInterviewStore from '../store';
+import useInterviewStore from '../interviewStore';
 import { InterviewRecord, InterviewData } from '../types';
 import styles from '../App.module.css';
 import { format } from 'date-fns';
@@ -32,10 +32,10 @@ const InterviewRecordApp: React.FC = () => {
     if (!searchQuery) return interviews;
     const lowerCaseQuery = searchQuery.toLowerCase();
     return interviews
-      .map(interview => {
+      .map((interview: InterviewData) => {
         if (!interview || !Array.isArray(interview.records)) return { ...interview, records: [] };
         const filteredRecords = interview.records.filter(
-          record =>
+          (record: InterviewRecord) =>
             (record.studentName && record.studentName.toLowerCase().includes(lowerCaseQuery)) ||
             (record.studentGrade && record.studentGrade.toLowerCase().includes(lowerCaseQuery)) ||
             (record.studentDepartment && record.studentDepartment.toLowerCase().includes(lowerCaseQuery)) ||
@@ -44,18 +44,18 @@ const InterviewRecordApp: React.FC = () => {
         );
         return { ...interview, records: filteredRecords };
       })
-      .filter(interview => interview.records.length > 0);
+      .filter((interview: InterviewData) => interview.records.length > 0);
   }, [searchQuery, interviews]);
 
   const matchingRecords = useMemo(() => {
     if (!searchQuery) return [];
-    return filteredInterviews.flatMap(interview =>
-      interview.records.map(record => ({ ...record, date: interview.date }))
+    return filteredInterviews.flatMap((interview: InterviewData) =>
+      interview.records.map((record: InterviewRecord) => ({ ...record, date: interview.date }))
     );
   }, [searchQuery, filteredInterviews]);
 
   const currentInterviewData = useMemo(() => 
-    selectedDate ? interviews.find(i => i.date === format(selectedDate, 'yyyy-MM-dd')) : undefined
+    selectedDate ? interviews.find((i: InterviewData) => i.date === format(selectedDate, 'yyyy-MM-dd')) : undefined
   , [selectedDate, interviews]);
 
   const handleDateClick = (date: Date) => {
@@ -69,7 +69,7 @@ const InterviewRecordApp: React.FC = () => {
   const handleSave = (records: InterviewRecord[]) => {
     if (!selectedDate) return;
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
-    const existingInterview = interviews.find(i => i.date === dateStr);
+    const existingInterview = interviews.find((i: InterviewData) => i.date === dateStr);
 
     if (records.length === 0) {
       if (existingInterview) {
@@ -110,9 +110,9 @@ const InterviewRecordApp: React.FC = () => {
       return cell;
     };
     const headers = ['面談日', '氏名', '学年', '学生所属', '面談カテゴリー', '本文'];
-    const rows = interviews.flatMap(interview => {
+    const rows = interviews.flatMap((interview: InterviewData) => {
       if (!interview || !Array.isArray(interview.records)) return [];
-      return interview.records.map(record =>
+      return interview.records.map((record: InterviewRecord) =>
         [interview.date, record.studentName, record.studentGrade, record.studentDepartment, record.category, record.content]
           .map(escapeCsvCell)
           .join(',')

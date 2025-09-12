@@ -4,6 +4,9 @@ import useReservationStore from '../reservationStore';
 import Calendar from '../components/Calendar';
 import ScheduleEditor from '../components/ScheduleEditor';
 import { DailySchedule } from '../types';
+import { Dropdown, DropdownButton } from 'react-bootstrap';
+import ProfileSettingsModal from '../components/ProfileSettingsModal';
+import * as XLSX from 'xlsx';
 
 const AdminTodaysReservations: React.FC<{ selectedInterviewerId: string | null }> = ({ selectedInterviewerId }) => {
   const { schedules } = useReservationStore();
@@ -47,9 +50,10 @@ interface AdminPageProps {
 }
 
 const AdminPage: React.FC<AdminPageProps> = ({ onGoToSelectPage }) => {
-  const { interviewers, schedules } = useReservationStore();
+  const { interviewers, schedules, updateInterviewer } = useReservationStore();
   const [selectedInterviewerId, setSelectedInterviewerId] = useState<string | null>(interviewers[0]?.id || null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -60,6 +64,39 @@ const AdminPage: React.FC<AdminPageProps> = ({ onGoToSelectPage }) => {
 
   const handleDateClick = (date: Date) => {
     setSelectedDate(date);
+  };
+
+  const handleExport = () => {
+    const wb = XLSX.utils.book_new();
+
+    interviewers.forEach(interviewer => {
+      const interviewerSchedules = schedules.filter(s => s.interviewerId === interviewer.id);
+      if (interviewerSchedules.length === 0) return;
+
+      const data = interviewerSchedules.flatMap(schedule =>
+        schedule.timeSlots.flatMap(slot =>
+          (slot.reservations && slot.reservations.length > 0) ?
+          slot.reservations.map(res => ({
+            '日付': schedule.date,
+            '開始時間': slot.startTime,
+            '終了時間': slot.endTime,
+            '氏名': res.studentName,
+            '学年': res.grade,
+            '所属': res.affiliation,
+          }))
+          : []
+        )
+      );
+
+      if (data.length > 0) {
+        const ws = XLSX.utils.json_to_sheet(data);
+        XLSX.utils.book_append_sheet(wb, ws, interviewer.name);
+      }
+    });
+
+    if (wb.SheetNames.length > 0) {
+      XLSX.writeFile(wb, 'schedules.xlsx');
+    }
   };
 
   const highlightedDays = useMemo(() => {
@@ -96,9 +133,15 @@ const AdminPage: React.FC<AdminPageProps> = ({ onGoToSelectPage }) => {
           <h1>管理用ページ</h1>
           <p>面談の予約枠を管理します。</p>
         </div>
-        <button className="btn btn-outline-primary" onClick={onGoToSelectPage}>
-          最初の画面に戻る
-        </button>
+        <div className="d-flex">
+          <DropdownButton id="admin-menu" title="メニュー" variant="outline-secondary" className="me-2">
+            <Dropdown.Item onClick={() => setShowProfileModal(true)}>プロフィール設定</Dropdown.Item>
+            <Dropdown.Item onClick={handleExport}>予定をエクセル形式で書き出し</Dropdown.Item>
+          </DropdownButton>
+          <button className="btn btn-outline-primary" onClick={onGoToSelectPage}>
+            最初の画面に戻る
+          </button>
+        </div>
       </header>
 
       {/* Interviewer Tabs */}
@@ -132,6 +175,13 @@ const AdminPage: React.FC<AdminPageProps> = ({ onGoToSelectPage }) => {
           </div>
         )}
       </main>
+
+      <ProfileSettingsModal
+        show={showProfileModal}
+        onHide={() => setShowProfileModal(false)}
+        interviewers={interviewers}
+        updateInterviewer={updateInterviewer}
+      />
     </div>
   );
 };

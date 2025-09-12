@@ -45,7 +45,9 @@ const ScheduleEditor: React.FC<ScheduleEditorProps> = ({ date, schedule, intervi
   };
 
   const handleDeleteTimeSlot = (id: string) => {
-    setTimeSlots(timeSlots.filter(ts => ts.id !== id));
+    if (window.confirm('この時間枠を削除しますか？この時間枠のすべての予約も削除されます。')) {
+      setTimeSlots(timeSlots.filter(ts => ts.id !== id));
+    }
   };
 
   const handleCancelReservation = (timeSlotId: string, reservationId: string) => {
@@ -85,8 +87,8 @@ const ScheduleEditor: React.FC<ScheduleEditorProps> = ({ date, schedule, intervi
       </div>
       <div className="card-body">
         <div className="d-flex justify-content-end mb-3">
-          <button className="btn btn-sm btn-outline-secondary me-2" onClick={handleCopySlots} disabled={timeSlots.length === 0}>コピー</button>
-          <button className="btn btn-sm btn-outline-secondary" onClick={handlePasteSlots} disabled={!copiedSlots}>貼り付け</button>
+          <button className="btn btn-sm btn-outline-secondary me-2" onClick={handleCopySlots} disabled={timeSlots.length === 0} title="表示中のすべての時間枠をコピーします">時間枠をコピー</button>
+          <button className="btn btn-sm btn-outline-secondary" onClick={handlePasteSlots} disabled={!copiedSlots} title="コピーした時間枠を貼り付けます">時間枠を貼り付け</button>
         </div>
 
         <ul className="list-group mb-3">
@@ -98,7 +100,7 @@ const ScheduleEditor: React.FC<ScheduleEditorProps> = ({ date, schedule, intervi
                   <span className="badge bg-info text-dark ms-2">{ts.title}</span>
                   <span className="badge bg-light text-dark ms-2">予約 {ts.reservations?.length || 0} / {ts.capacity || 1}</span>
                 </div>
-                <button className="btn btn-sm btn-outline-danger" onClick={() => handleDeleteTimeSlot(ts.id)}>削除</button>
+                <button className="btn btn-sm btn-danger" onClick={() => handleDeleteTimeSlot(ts.id)} title="この時間枠を削除します">削除</button>
               </div>
               {(ts.reservations?.length || 0) > 0 && (
                 <div className="mt-3">
@@ -107,7 +109,7 @@ const ScheduleEditor: React.FC<ScheduleEditorProps> = ({ date, schedule, intervi
                     {ts.reservations?.map((r) => (
                       <li key={r.id} className="list-group-item d-flex justify-content-between align-items-center">
                         <span>{r.studentName} ({r.grade}, {r.affiliation})</span>
-                        <button className="btn btn-sm btn-outline-warning" onClick={() => handleCancelReservation(ts.id, r.id)}>キャンセル</button>
+                        <button className="btn btn-sm btn-warning" onClick={() => handleCancelReservation(ts.id, r.id)} title="この予約をキャンセルします">予約キャンセル</button>
                       </li>
                     ))}
                   </ul>

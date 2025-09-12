@@ -4,9 +4,9 @@ import { DailySchedule, Interviewer, Reservation, TimeSlot, ReservationState } f
 import { dbPromise, SCHEDULE_STORE_NAME, INTERVIEWER_STORE_NAME } from './database';
 
 const initialInterviewers: Interviewer[] = [
-  { id: 'interviewer-1', name: '山田 太郎' },
-  { id: 'interviewer-2', name: '佐藤 花子' },
-  { id: 'interviewer-3', name: '鈴木 一郎' },
+  { id: 'interviewer-1', name: '山田 太郎', title: '担当者', email: 'taro.yamada@example.com' },
+  { id: 'interviewer-2', name: '佐藤 花子', title: '担当者', email: 'hanako.sato@example.com' },
+  { id: 'interviewer-3', name: '鈴木 一郎', title: '担当者', email: 'ichiro.suzuki@example.com' },
 ];
 
 const saveScheduleToDB = async (schedule: DailySchedule) => {
@@ -15,6 +15,15 @@ const saveScheduleToDB = async (schedule: DailySchedule) => {
     await db.put(SCHEDULE_STORE_NAME, schedule);
   } catch (error) {
     console.error('Failed to save schedule to IndexedDB:', error);
+  }
+};
+
+const saveInterviewerToDB = async (interviewer: Interviewer) => {
+  try {
+    const db = await dbPromise;
+    await db.put(INTERVIEWER_STORE_NAME, interviewer);
+  } catch (error) {
+    console.error('Failed to save interviewer to IndexedDB:', error);
   }
 };
 
@@ -79,6 +88,17 @@ const useReservationStore = create<ReservationState>((set, get) => ({
     }
     set({ schedules: updatedSchedules });
     saveScheduleToDB(schedule);
+  },
+
+  updateInterviewer: (interviewer) => {
+    const { interviewers } = get();
+    const index = interviewers.findIndex(i => i.id === interviewer.id);
+    if (index !== -1) {
+      const updatedInterviewers = [...interviewers];
+      updatedInterviewers[index] = interviewer;
+      set({ interviewers: updatedInterviewers });
+      saveInterviewerToDB(interviewer);
+    }
   },
 
   bookTimeSlot: async (interviewerId, date, timeSlotId, reservationData) => {

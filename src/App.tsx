@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import useInterviewStore from './store';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
+import useInterviewStore from './interviewStore';
 import useReservationStore from './reservationStore';
+import ErrorBoundary from './components/ErrorBoundary';
 
-import AdminPage from './pages/AdminPage';
-import ReservationPage from './pages/ReservationPage';
-import SelectPage from './pages/SelectPage';
+const AdminPage = lazy(() => import('./pages/AdminPage'));
+const ReservationPage = lazy(() => import('./pages/ReservationPage'));
+const SelectPage = lazy(() => import('./pages/SelectPage'));
 
 type Page = 'select' | 'admin' | 'reservation';
 
@@ -19,7 +20,7 @@ function App() {
   }, [initializeInterviewApp, initializeReservationApp]);
 
   if (!interviewStoreInitialized || !reservationStoreInitialized) {
-    return null; 
+    return <div>Loading...</div>; 
   }
 
   const goToSelectPage = () => setPage('select');
@@ -41,7 +42,11 @@ function App() {
 
   return (
     <div className="App">
-      {renderPage()}
+      <ErrorBoundary>
+        <Suspense fallback={<div>Loading...</div>}>
+          {renderPage()}
+        </Suspense>
+      </ErrorBoundary>
     </div>
   );
 }
